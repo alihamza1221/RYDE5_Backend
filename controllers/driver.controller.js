@@ -3,7 +3,6 @@ const captainService = require("../services/driver.services");
 const blackListTokenModel = require("../models/blackListToken.model");
 const { validationResult } = require("express-validator");
 const cloudinary = require("../utils/cloudinary");
-const fs = require("fs");
 
 module.exports.registerCaptain = async (req, res, next) => {
   const errors = validationResult(req);
@@ -51,12 +50,16 @@ module.exports.registerCaptain = async (req, res, next) => {
   // Upload to Cloudinary
 
   const driverLicenseResult = await cloudinary.uploader.upload(
-    req.files.driverLicense[0].path,
+    `data:${
+      req.files.driverLicense[0].mimetype
+    };base64,${req.files.driverLicense[0].buffer.toString("base64")}`,
     { folder: "driver-docs", resource_type: "raw", timeout: 120000 }
   );
 
-  const insuranceResult = await cloudinary.uploader.upload(
-    req.files.carInsurance[0].path,
+  const insuranceResult = await await cloudinary.uploader.upload(
+    `data:${
+      req.files.carInsurance[0].mimetype
+    };base64,${req.files.carInsurance[0].buffer.toString("base64")}`,
     { folder: "driver-docs", resource_type: "raw", timeout: 120000 }
   );
 
@@ -83,9 +86,6 @@ module.exports.registerCaptain = async (req, res, next) => {
       expiryDate: carInsuranceExpiryDate,
     },
   });
-  // Clean up uploaded files
-  fs.unlinkSync(req.files.driverLicense[0].path);
-  fs.unlinkSync(req.files.carInsurance[0].path);
 
   const token = captain.generateAuthToken();
 

@@ -5,12 +5,7 @@ const router = express.Router();
 const { body } = require("express-validator");
 const authMiddleware = require("../middlewares/auth.middleware");
 const upload = multer({
-  storage: multer.diskStorage({
-    destination: "./uploads/",
-    filename: (req, file, cb) => {
-      cb(null, `${Date.now()}-${file.originalname}`);
-    },
-  }),
+  storage: multer.memoryStorage(),
   fileFilter: (req, file, cb) => {
     if (
       file.mimetype === "application/pdf" ||
