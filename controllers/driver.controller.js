@@ -2,6 +2,8 @@ const captainModel = require("../models/driver.model");
 const captainService = require("../services/driver.services");
 const blackListTokenModel = require("../models/blackListToken.model");
 const { validationResult } = require("express-validator");
+const cloudinary = require("../utils/cloudinary");
+const fs = require("fs");
 
 module.exports.registerCaptain = async (req, res, next) => {
   const errors = validationResult(req);
@@ -29,15 +31,33 @@ module.exports.registerCaptain = async (req, res, next) => {
     return res.status(400).json({ message: "All documents are required" });
   }
 
+  // Validate vehicle object
+  const vehicleObj =
+    typeof vehicle === "string" ? JSON.parse(vehicle) : vehicle;
+
+  const sendErrorStatus = (message) => {
+    res.status(400).json({ message });
+  };
+
+  if (!vehicleObj.color || vehicleObj.color.length < 3)
+    sendErrorStatus("Color must be at least 3 characters");
+  if (!vehicleObj.plate) sendErrorStatus("Plate is required");
+  if (!vehicleObj.capacity || vehicleObj.capacity < 1)
+    sendErrorStatus("Capacity must be at least 1");
+  if (!["car", "motorcycle", "auto"].includes(vehicleObj.vehicleType))
+    sendErrorStatus("Invalid vehicle type");
+  if (!vehicleObj.vehicleModel) sendErrorStatus("Vehicle model is required");
+
   // Upload to Cloudinary
+
   const driverLicenseResult = await cloudinary.uploader.upload(
     req.files.driverLicense[0].path,
-    { folder: "driver-docs" }
+    { folder: "driver-docs", resource_type: "raw", timeout: 120000 }
   );
 
   const insuranceResult = await cloudinary.uploader.upload(
-    req.files.insurance[0].path,
-    { folder: "driver-docs" }
+    req.files.carInsurance[0].path,
+    { folder: "driver-docs", resource_type: "raw", timeout: 120000 }
   );
 
   const hashedPassword = await captainModel.hashPassword(password);
@@ -47,10 +67,11 @@ module.exports.registerCaptain = async (req, res, next) => {
     email,
     phoneNo,
     password: hashedPassword,
-    color: vehicle.color,
-    plate: vehicle.plate,
-    capacity: vehicle.capacity,
-    vehicleType: vehicle.vehicleType,
+    color: vehicleObj.color,
+    plate: vehicleObj.plate,
+    capacity: vehicleObj.capacity,
+    vehicleType: vehicleObj.vehicleType,
+    vehicleModel: vehicleObj.vehicleModel,
     driverLicense: {
       url: driverLicenseResult.secure_url,
       uploadDate: new Date(),
@@ -64,7 +85,7 @@ module.exports.registerCaptain = async (req, res, next) => {
   });
   // Clean up uploaded files
   fs.unlinkSync(req.files.driverLicense[0].path);
-  fs.unlinkSync(req.files.insurance[0].path);
+  fs.unlinkSync(req.files.carInsurance[0].path);
 
   const token = captain.generateAuthToken();
 

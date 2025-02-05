@@ -25,6 +25,10 @@ const captainSchema = new mongoose.Schema({
     required: true,
     select: false,
   },
+  image: {
+    type: String,
+    default: "default.jpg",
+  },
   socketId: {
     type: String,
   },
@@ -55,6 +59,11 @@ const captainSchema = new mongoose.Schema({
       type: String,
       required: true,
       enum: ["car", "motorcycle", "auto"],
+    },
+    vehicleModel: {
+      type: String,
+      required: true,
+      min: [1, "Vehicle model must be at least 1 characters long"],
     },
   },
 
