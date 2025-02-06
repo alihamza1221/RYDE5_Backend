@@ -31,6 +31,8 @@ router.post(
 );
 
 router.post("/verify", userController.verifyUser);
+router.post("/set2FA", authMiddleware.authUser, userController.set2FA);
+router.post("requestOtp", userController.requestOtp);
 
 router.get("/profile", authMiddleware.authUser, userController.getUserProfile);
 

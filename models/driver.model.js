@@ -134,6 +134,10 @@ const driverSchema = new mongoose.Schema(
         type: Number,
       },
     },
+    twoFactor: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );

@@ -46,6 +46,10 @@ const userSchema = new mongoose.Schema(
         type: Number,
       },
     },
+    twoFactor: {
+      type: Boolean,
+      default: false,
+    },
     socketId: {
       type: String,
     },

@@ -1,6 +1,7 @@
 const dotenv = require("dotenv");
 dotenv.config();
 const transporter = require("../utils/nodemailer");
+
 module.exports.sendOtp = async (to, otp) => {
   try {
     const info = await transporter.sendMail({

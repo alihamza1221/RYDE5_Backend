@@ -60,9 +60,57 @@ module.exports.verifyUser = async (req, res, next) => {
   await user.save();
 
   const token = user.generateAuthToken();
+  res.cookie("token", token);
+
   return res.status(200).json({ token, user });
 };
 
+module.exports.set2FA = async (req, res, next) => {
+  try {
+    const userId = req.user._id ?? req.body.userId;
+    const status = req.body.status;
+
+    const user = await userModel.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "Unmatched fields error" });
+    }
+
+    // set twofactor status
+
+    user.twoFactor = status ? true : false;
+    await user.save();
+
+    res.status(200).json({
+      message: "2FA setup status changed to " + status,
+    });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+module.exports.requestOtp = async (req, res, next) => {
+  try {
+    const userId = req.user._id ?? req.body.userId;
+
+    const user = await userModel.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "Unmatched fields error" });
+    }
+
+    const otp = randomString();
+    const to = user.email;
+    otpController.sendOtp(to, otp);
+
+    //save otp to db
+    user.otp.code = otp;
+    await user.save();
+
+    res.status(200).json({
+      message: "otp successfully sent to your email",
+    });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
 module.exports.loginUser = async (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -83,11 +131,36 @@ module.exports.loginUser = async (req, res, next) => {
     return res.status(401).json({ message: "Invalid email or password" });
   }
 
-  const token = user.generateAuthToken();
+  if (!user.otp.verified) {
+    return res.status(401).json({
+      message: "Please verify your account first or request for new otp",
+    });
+  }
 
-  res.cookie("token", token);
+  if (!user.twoFactor) {
+    const token = user.generateAuthToken();
+    res.cookie("token", token);
+    res.status(200).json({
+      token,
+      user,
+    });
+  }
 
-  res.status(200).json({ token, user });
+  user.otp.verified = false;
+  const otp = randomString();
+  user.otp.code = otp;
+  await user.save();
+
+  res.status(200).json({
+    token,
+    user: {
+      ...user,
+      otp: {
+        verified: false,
+        code: null,
+      },
+    },
+  });
 };
 
 module.exports.getUserProfile = async (req, res, next) => {

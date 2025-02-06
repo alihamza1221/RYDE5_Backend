@@ -25,6 +25,8 @@ router.post(
 );
 
 router.post("/verify", captainController.verify);
+router.post("/set2FA", authMiddleware.authDriver, captainController.set2FA);
+router.post("requestOtp", captainController.requestOtp);
 
 router.post(
   "/login",
