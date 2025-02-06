@@ -91,9 +91,40 @@ module.exports.registerCaptain = async (req, res, next) => {
     },
   });
 
-  const token = captain.generateAuthToken();
+  const otp = randomString();
+  const to = email;
+  otpController.sendOtp(to, otp);
+
+  //save otp to db
+  captain.otp.code = otp;
+  await captain.save();
 
   res.status(201).json({ token, captain });
+};
+
+module.exports.verify = async (req, res, next) => {
+  const { email, otp } = req.body;
+
+  const driver = await driverModel
+    .findOne({
+      email,
+    })
+    .select("+otp.code");
+
+  if (!driver) {
+    return res.status(404).json({ message: "Driver not found" });
+  }
+
+  if (driver.otp.code !== parseInt(otp)) {
+    return res.status(400).json({ message: "Invalid OTP" });
+  }
+
+  //update driver otp to verified
+  driver.otp.verified = true;
+  await driver.save();
+
+  const token = driver.generateAuthToken();
+  return res.status(200).json({ token, driver });
 };
 
 module.exports.loginCaptain = async (req, res, next) => {

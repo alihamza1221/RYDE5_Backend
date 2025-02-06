@@ -125,6 +125,15 @@ const driverSchema = new mongoose.Schema(
         },
       },
     },
+    otp: {
+      verified: {
+        type: Boolean,
+        default: false,
+      },
+      code: {
+        type: Number,
+      },
+    },
   },
   { timestamps: true }
 );

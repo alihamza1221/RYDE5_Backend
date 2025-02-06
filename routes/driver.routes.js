@@ -24,6 +24,8 @@ router.post(
   captainController.registerCaptain
 );
 
+router.post("/verify", captainController.verify);
+
 router.post(
   "/login",
   [

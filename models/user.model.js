@@ -37,6 +37,15 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: defaultImage,
     },
+    otp: {
+      verified: {
+        type: Boolean,
+        default: false,
+      },
+      code: {
+        type: Number,
+      },
+    },
     socketId: {
       type: String,
     },
