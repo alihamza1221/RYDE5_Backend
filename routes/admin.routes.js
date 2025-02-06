@@ -4,8 +4,8 @@ const { body } = require("express-validator");
 const authMiddleware = require("../middlewares/auth.middleware");
 const adminController = require("../controllers/admin.controller/admin.controller");
 const dashboardController = require("../controllers/admin.controller/dashboard.controller");
-const multer = require("multer");
-
+const { upload } = require("../utils/image.config.multer");
+const adminActionsController = require("../controllers/admin.controller/actions.admin");
 router.post(
   "/register",
   [
@@ -42,7 +42,6 @@ router.get(
 );
 
 /*USER INFO */
-// User Routes
 router.get(
   "/getUsersDetails",
   authMiddleware.authAdmin,
@@ -86,22 +85,17 @@ router.post(
   dashboardController.getDriversByVehicleType
 );
 
-const upload = multer({
-  storage: multer.diskStorage({
-    destination: "vehicleImage/",
-    filename: (req, file, cb) => {
-      cb(null, `vehicle-${Date.now()}${path.extname(file.originalname)}`);
-    },
-  }),
-  fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith("image/")) {
-      cb(null, true);
-    } else {
-      cb(new Error("Only image files are allowed"));
-    }
-  },
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
-});
+router.post(
+  "/setUserStatus",
+  authMiddleware.authAdmin,
+  adminActionsController.setUserStatus
+);
+
+router.post(
+  "/deleteUser",
+  authMiddleware.authAdmin,
+  adminActionsController.deleteUser
+);
 
 router.post(
   "/drivers/vehicle_image",

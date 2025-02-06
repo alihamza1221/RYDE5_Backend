@@ -4,6 +4,7 @@ const { body } = require("express-validator");
 const userController = require("../controllers/user.controller");
 const authMiddleware = require("../middlewares/auth.middleware");
 const otpController = require("../controllers/otp.controller");
+const { upload } = require("../utils/image.config.multer");
 
 router.post(
   "/register",
@@ -35,6 +36,12 @@ router.post("/set2FA", authMiddleware.authUser, userController.set2FA);
 router.post("requestOtp", userController.requestOtp);
 
 router.get("/profile", authMiddleware.authUser, userController.getUserProfile);
+router.post(
+  "/uploadImage",
+  authMiddleware.authUser,
+  imageUpload.single("profileImage"),
+  userController.uploadImage
+);
 
 router.get("/logout", authMiddleware.authUser, userController.logoutUser);
 

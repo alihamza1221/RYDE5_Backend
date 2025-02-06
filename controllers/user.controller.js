@@ -175,3 +175,40 @@ module.exports.logoutUser = async (req, res, next) => {
 
   res.status(200).json({ message: "Logged out" });
 };
+
+module.exports.uploadImage = async (req, res, next) => {
+  try {
+    const userId = req.user._id ?? req.body.userId;
+
+    if (!req.file) {
+      return res.status(400).json({
+        message: "Profile image is required",
+      });
+    }
+
+    const imagePath = `/upload/${req.file.filename}`;
+
+    const user = await userModel
+      .findByIdAndUpdate(
+        userId,
+        {
+          image: imagePath,
+        },
+        { new: true }
+      )
+      .select("-password");
+
+    if (!userId) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    res.status(200).json({
+      message: "Profile image uploaded successfully",
+      user,
+    });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};

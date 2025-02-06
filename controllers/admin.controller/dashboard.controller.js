@@ -267,7 +267,7 @@ module.exports.uploadVehicleImage = async (req, res, next) => {
       });
     }
 
-    const imagePath = `/vehicleImage/${req.file.filename}`;
+    const imagePath = `/uploads/${req.file.filename}`;
 
     const driver = await driverModel
       .findByIdAndUpdate(

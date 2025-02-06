@@ -238,3 +238,40 @@ module.exports.logoutCaptain = async (req, res, next) => {
 
   res.status(200).json({ message: "Logout successfully" });
 };
+
+module.exports.uploadImage = async (req, res, next) => {
+  try {
+    const driverId = req.captain._id ?? req.body.driverId;
+
+    if (!req.file) {
+      return res.status(400).json({
+        message: "Profile image is required",
+      });
+    }
+
+    const imagePath = `/upload/${req.file.filename}`;
+
+    const driver = await driverModel
+      .findByIdAndUpdate(
+        driverId,
+        {
+          image: imagePath,
+        },
+        { new: true }
+      )
+      .select("-password");
+
+    if (!driver) {
+      return res.status(404).json({
+        message: "Driver not found",
+      });
+    }
+
+    res.status(200).json({
+      message: "Profile image uploaded successfully",
+      driver,
+    });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
