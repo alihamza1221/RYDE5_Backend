@@ -1,8 +1,7 @@
-const captainModel = require("../models/driver.model");
-const captainService = require("../services/driver.services");
+const driverModel = require("../models/driver.model");
+const driverServices = require("../services/driver.services");
 const blackListTokenModel = require("../models/blackListToken.model");
 const { validationResult } = require("express-validator");
-const cloudinary = require("../utils/cloudinary");
 
 module.exports.registerCaptain = async (req, res, next) => {
   const errors = validationResult(req);
@@ -20,12 +19,14 @@ module.exports.registerCaptain = async (req, res, next) => {
     carInsuranceExpiryDate,
   } = req.body;
 
-  const isCaptainAlreadyExist = await captainModel.findOne({ email });
+  const isCaptainAlreadyExist = await driverModel.findOne({ email });
 
   if (isCaptainAlreadyExist) {
     return res.status(400).json({ message: "Captain already exist" });
   }
 
+  console.log("req.body", req.body);
+  console.log("files", req.files);
   if (!req.files || !req.files.driverLicense || !req.files.carInsurance) {
     return res.status(400).json({ message: "All documents are required" });
   }
@@ -49,23 +50,26 @@ module.exports.registerCaptain = async (req, res, next) => {
 
   // Upload to Cloudinary
 
-  const driverLicenseResult = await cloudinary.uploader.upload(
-    `data:${
-      req.files.driverLicense[0].mimetype
-    };base64,${req.files.driverLicense[0].buffer.toString("base64")}`,
-    { folder: "driver-docs", resource_type: "raw", timeout: 120000 }
-  );
+  // const driverLicenseResult = await cloudinary.uploader.upload(
+  //   `data:${
+  //     req.files.driverLicense[0].mimetype
+  //   };base64,${req.files.driverLicense[0].buffer.toString("base64")}`,
+  //   { folder: "driver-docs", resource_type: "raw", timeout: 120000 }
+  // );
 
-  const insuranceResult = await await cloudinary.uploader.upload(
-    `data:${
-      req.files.carInsurance[0].mimetype
-    };base64,${req.files.carInsurance[0].buffer.toString("base64")}`,
-    { folder: "driver-docs", resource_type: "raw", timeout: 120000 }
-  );
+  // const insuranceResult = await await cloudinary.uploader.upload(
+  //   `data:${
+  //     req.files.carInsurance[0].mimetype
+  //   };base64,${req.files.carInsurance[0].buffer.toString("base64")}`,
+  //   { folder: "driver-docs", resource_type: "raw", timeout: 120000 }
+  // );
 
-  const hashedPassword = await captainModel.hashPassword(password);
+  const driverLicensePath = `/uploads/${req.files.driverLicense[0].filename}`;
+  const carInsurancePath = `/uploads/${req.files.carInsurance[0].filename}`;
 
-  const captain = await captainService.createCaptain({
+  const hashedPassword = await driverModel.hashPassword(password);
+
+  const captain = await driverServices.createCaptain({
     fullname,
     email,
     phoneNo,
@@ -76,12 +80,12 @@ module.exports.registerCaptain = async (req, res, next) => {
     vehicleType: vehicleObj.vehicleType,
     vehicleModel: vehicleObj.vehicleModel,
     driverLicense: {
-      url: driverLicenseResult.secure_url,
+      path: driverLicensePath,
       uploadDate: new Date(),
       expiryDate: driverLicenseExpiryDate,
     },
     carInsurance: {
-      url: insuranceResult.secure_url,
+      path: carInsurancePath,
       uploadDate: new Date(),
       expiryDate: carInsuranceExpiryDate,
     },
@@ -100,7 +104,7 @@ module.exports.loginCaptain = async (req, res, next) => {
 
   const { email, password } = req.body;
 
-  const captain = await captainModel.findOne({ email }).select("+password");
+  const captain = await driverModel.findOne({ email }).select("+password");
 
   if (!captain) {
     return res.status(401).json({ message: "Invalid email or password" });

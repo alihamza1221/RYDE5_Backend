@@ -4,21 +4,7 @@ const express = require("express");
 const router = express.Router();
 const { body } = require("express-validator");
 const authMiddleware = require("../middlewares/auth.middleware");
-const upload = multer({
-  storage: multer.memoryStorage(),
-  fileFilter: (req, file, cb) => {
-    if (
-      file.mimetype === "application/pdf" ||
-      file.mimetype === "application/msword" ||
-      file.mimetype ===
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-    ) {
-      cb(null, true);
-    } else {
-      cb(new Error("Only PDF and DOC files allowed"));
-    }
-  },
-});
+const upload = require("../utils/multer.config");
 
 router.post(
   "/register",
@@ -51,13 +37,13 @@ router.post(
 
 router.get(
   "/profile",
-  authMiddleware.authCaptain,
+  authMiddleware.authDriver,
   captainController.getCaptainProfile
 );
 
 router.get(
   "/logout",
-  authMiddleware.authCaptain,
+  authMiddleware.authDriver,
   captainController.logoutCaptain
 );
 
