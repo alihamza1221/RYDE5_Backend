@@ -212,3 +212,32 @@ module.exports.uploadImage = async (req, res, next) => {
     res.status(400).json({ message: error.message });
   }
 };
+
+module.exports.updateUserInfo = async (req, res, next) => {
+  try {
+    const userId = req.user._id;
+    const { email, phone } = req.body;
+
+    // Create update object with only provided fields
+    const updateData = {};
+    if (email) updateData.email = email;
+    if (phone) updateData.phoneNo = phone;
+
+    const user = await userModel
+      .findByIdAndUpdate(userId, updateData, { new: true })
+      .select("-password");
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    res.status(200).json({
+      message: "User information updated successfully",
+      user,
+    });
+  } catch (error) {
+    return res.status(400).json({ message: error.message });
+  }
+};

@@ -6,6 +6,8 @@ const adminController = require("../controllers/admin.controller/admin.controlle
 const dashboardController = require("../controllers/admin.controller/dashboard.controller");
 const { upload } = require("../utils/image.config.multer");
 const adminActionsController = require("../controllers/admin.controller/actions.admin");
+const upload_doc = require("../utils/multer.config");
+
 router.post(
   "/register",
   [
@@ -86,6 +88,14 @@ router.post(
 );
 
 router.post(
+  "/drivers/vehicle_image",
+  authMiddleware.authAdmin,
+  upload.single("vehicleImage"),
+  dashboardController.uploadVehicleImage
+);
+
+/* DRVIVER ACTIOINS */
+router.post(
   "/setUserStatus",
   authMiddleware.authAdmin,
   adminActionsController.setUserStatus
@@ -97,10 +107,54 @@ router.post(
   adminActionsController.deleteUser
 );
 
-router.post(
-  "/drivers/vehicle_image",
+//userId, identity, email, fullname
+router.patch(
+  "/updateUserInfo",
+  [
+    body("userId").notEmpty().withMessage("userId is required"),
+    body("identity")
+      .notEmpty()
+      .isIn(["user", "driver"])
+      .withMessage("identity must be either 'user' or 'driver'"),
+    body("email").optional().isEmail().withMessage("Invalid email format"),
+    body("fullname")
+      .optional()
+      .isLength({ min: 3 })
+      .withMessage("Name must be at least 3 characters long"),
+  ],
   authMiddleware.authAdmin,
-  upload.single("vehicleImage"),
-  dashboardController.uploadVehicleImage
+  adminActionsController.updateUserInfo
 );
+
+router.post(
+  "/uploadDocument",
+  authMiddleware.authAdmin,
+  upload_doc.single("document"),
+  [
+    body("category")
+      .isIn(["guidelines", "forms", "legal"])
+      .withMessage("Invalid category"),
+    body("status").isIn(["active", "archived"]).withMessage("Invalid status"),
+  ],
+  dashboardController.uploadAdminDocument
+);
+
+router.get(
+  "/documents",
+  authMiddleware.authAdmin,
+  dashboardController.getAdminDocuments
+);
+
+router.get(
+  "/searchDocuments",
+  authMiddleware.authAdmin,
+  dashboardController.searchAdminDocuments
+);
+
+router.get(
+  "/getFilteredDocuments",
+  authMiddleware.authAdmin,
+  dashboardController.getFilteredDocuments
+);
+
 module.exports = router;
