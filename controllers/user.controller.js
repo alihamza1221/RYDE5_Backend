@@ -76,7 +76,6 @@ module.exports.set2FA = async (req, res, next) => {
     }
 
     // set twofactor status
-
     user.twoFactor = status ? true : false;
     await user.save();
 
@@ -89,9 +88,14 @@ module.exports.set2FA = async (req, res, next) => {
 };
 module.exports.requestOtp = async (req, res, next) => {
   try {
-    const userId = req.user._id ?? req.body.userId;
+    const userId = req.user._id;
+    const { email } = req.body;
 
-    const user = await userModel.findById(userId);
+    let user = null;
+    if (userId) user = await userModel.findById(userId);
+    else {
+      user = await userModel.findOne({ email });
+    }
     if (!user) {
       return res.status(404).json({ message: "Unmatched fields error" });
     }
@@ -140,7 +144,7 @@ module.exports.loginUser = async (req, res, next) => {
   if (!user.twoFactor) {
     const token = user.generateAuthToken();
     res.cookie("token", token);
-    res.status(200).json({
+    return res.status(200).json({
       token,
       user,
     });
@@ -173,7 +177,7 @@ module.exports.logoutUser = async (req, res, next) => {
 
   //   await blackListTokenModel.create({ token });
 
-  res.status(200).json({ message: "Logged out" });
+  return res.status(200).json({ message: "Logged out" });
 };
 
 module.exports.uploadImage = async (req, res, next) => {
@@ -204,12 +208,12 @@ module.exports.uploadImage = async (req, res, next) => {
       });
     }
 
-    res.status(200).json({
+    return res.status(200).json({
       message: "Profile image uploaded successfully",
       user,
     });
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    return res.status(400).json({ message: error.message });
   }
 };
 
@@ -233,7 +237,7 @@ module.exports.updateUserInfo = async (req, res, next) => {
       });
     }
 
-    res.status(200).json({
+    return res.status(200).json({
       message: "User information updated successfully",
       user,
     });

@@ -152,9 +152,16 @@ module.exports.set2FA = async (req, res, next) => {
 };
 module.exports.requestOtp = async (req, res, next) => {
   try {
-    const driverId = req.captain._id ?? req.body.driverId;
+    const driverId = req.captain._id;
+    const email = req.body.email;
 
-    const driver = await driverModel.findById(driverId);
+    let driver = null;
+
+    if (driverId) {
+      driver = await driverModel.findById(driverId);
+    } else {
+      driver = await driverModel.findOne({ email });
+    }
     if (!driver) {
       return res.status(404).json({ message: "Unmatched fields error" });
     }
@@ -203,7 +210,7 @@ module.exports.loginCaptain = async (req, res, next) => {
   if (!captain.twoFactor) {
     const token = captain.generateAuthToken();
     res.cookie("token", token);
-    res.status(200).json({
+    return res.status(200).json({
       token,
       captain,
     });
