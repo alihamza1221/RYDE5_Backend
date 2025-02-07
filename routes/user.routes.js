@@ -4,7 +4,7 @@ const { body } = require("express-validator");
 const userController = require("../controllers/user.controller");
 const authMiddleware = require("../middlewares/auth.middleware");
 const otpController = require("../controllers/otp.controller");
-const { upload } = require("../utils/image.config.multer");
+const multerUpload = require("../utils/image.config.multer");
 
 router.post(
   "/register",
@@ -39,8 +39,21 @@ router.get("/profile", authMiddleware.authUser, userController.getUserProfile);
 router.post(
   "/uploadImage",
   authMiddleware.authUser,
-  imageUpload.single("profileImage"),
+  multerUpload.upload.single("profileImage"),
   userController.uploadImage
+);
+
+router.patch(
+  "/updateUserInfo",
+  authMiddleware.authUser,
+  [
+    body("email").optional().isEmail().withMessage("Invalid email format"),
+    body("phone")
+      .optional()
+      .isLength({ min: 10 })
+      .withMessage("Invalid phone number format"),
+  ],
+  userController.updateUserInfo
 );
 
 router.get("/logout", authMiddleware.authUser, userController.logoutUser);

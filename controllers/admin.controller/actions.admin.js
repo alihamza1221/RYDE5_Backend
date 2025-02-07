@@ -22,8 +22,8 @@ module.exports.setUserStatus = async (req, res, next) => {
       });
     }
 
-    // Select model based on userType
-    const Model = userType === "driver" ? driverModel : userModel;
+    // Select model based on identity
+    const Model = identity === "driver" ? driverModel : userModel;
 
     const user = await Model.findByIdAndUpdate(
       userId,
@@ -33,7 +33,7 @@ module.exports.setUserStatus = async (req, res, next) => {
 
     if (!user) {
       return res.status(404).json({
-        message: `${userType} not found`,
+        message: `${identity} not found`,
       });
     }
 
@@ -78,5 +78,44 @@ module.exports.deleteUser = async (req, res, next) => {
     });
   } catch (error) {
     res.status(400).json({ message: error.message });
+  }
+};
+
+module.exports.updateUserInfo = async (req, res, next) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { userId, identity, email, fullname } = req.body;
+
+    // Create update object with only provided fields
+    const updateData = {};
+    if (email) updateData.email = email;
+    if (fullname) updateData.fullname = fullname;
+
+    // Select model based on identity
+    const Model = identity === "driver" ? driverModel : userModel;
+
+    const user = await Model.findByIdAndUpdate(userId, updateData, {
+      new: true,
+    }).select("-password");
+
+    if (!user) {
+      return res.status(404).json({
+        message: `${identity} not found`,
+      });
+    }
+    console.log("user", user);
+
+    res.status(200).json({
+      message: `${identity} information updated successfully`,
+      user,
+    });
+  } catch (error) {
+    return res.status(400).json({
+      message: "Error updating user information",
+    });
   }
 };

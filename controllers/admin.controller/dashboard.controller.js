@@ -2,6 +2,9 @@ const { validationResult } = require("express-validator");
 // const blackListTokenModel = require("../models/blackListToken.model");
 const userModel = require("../../models/user.model");
 const driverModel = require("../../models/driver.model");
+const path = require("path");
+const adminModel = require("../../models/admin.model");
+
 
 module.exports.dashboardDataBrief = async (req, res, next) => {
   const errors = validationResult(req);
@@ -294,4 +297,132 @@ module.exports.uploadVehicleImage = async (req, res, next) => {
   }
 };
 
-//TODS: ADMIN DASHBOARD REQ
+//TODOS: ADMIN DASHBOARD REQ
+module.exports.uploadAdminDocument = async (req, res, next) => {
+  try {
+    //validate
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { category, status } = req.body;
+    const adminId = req.admin._id;
+
+    if (!req.file) {
+      return res.status(400).json({
+        message: "Document file is required",
+      });
+    }
+
+    const filePath = `/uploads/${req.file.filename}`;
+    const fileType = path
+      .extname(req.file.originalname)
+      .toLowerCase()
+      .substring(1); // Extract file extension
+
+    const admin = await adminModel.findByIdAndUpdate(
+      adminId,
+      {
+        $push: {
+          documents: {
+            category,
+            fileType,
+            fileName: req.file.originalname,
+            filePath,
+            uploadedBy: adminId,
+            status,
+          },
+        },
+      },
+      { new: true }
+    );
+
+    res.status(200).json({
+      message: "Document uploaded successfully",
+      document: admin.documents[admin.documents.length - 1],
+    });
+  } catch (error) {
+    return res.status(400).json({ message: error.message });
+  }
+};
+
+module.exports.getAdminDocuments = async (req, res, next) => {
+  try {
+    const admins = await adminModel.find().select("documents");
+
+    const documents = admins.reduce((acc, admin) => {
+      return acc.concat(admin.documents);
+    }, []);
+
+    res.status(200).json({
+      documents: documents,
+      totalDocuments: documents.length,
+    });
+  } catch (error) {
+    return res.status(400).json({ message: error.message });
+  }
+};
+
+module.exports.searchAdminDocuments = async (req, res, next) => {
+  try {
+    const { fileName } = req.query;
+
+    if (!fileName || fileName.length === 0) {
+      return res.status(400).json({
+        documents: [],
+        count: 0,
+        message: "fileName query parameter is required",
+      });
+    }
+
+    const admins = await adminModel.find().select("documents");
+
+    const documents = admins.reduce((acc, admin) => {
+      return acc.concat(
+        admin.documents.filter((doc) =>
+          new RegExp(fileName, "i").test(doc.fileName)
+        )
+      );
+    }, []);
+
+    res.status(200).json({
+      documents: documents,
+      totalDocuments: documents.length,
+    });
+  } catch (error) {
+    return res.status(400).json({ message: error.message });
+  }
+};
+
+module.exports.getFilteredDocuments = async (req, res, next) => {
+  try {
+    const { status, fileType, category } = req.query;
+
+    const filter = {};
+    if (status) filter["documents.status"] = status;
+    if (fileType) filter["documents.fileType"] = fileType;
+    if (category) filter["documents.category"] = category;
+
+    const admins = await adminModel.find(filter).select("documents");
+
+    const documents = admins.reduce((acc, admin) => {
+      return acc.concat(
+        admin.documents.filter((doc) => {
+          return (
+            (!status || doc.status === status) &&
+            (!fileType || doc.fileType === fileType) &&
+            (!category || doc.category === category)
+          );
+        })
+      );
+    }, []);
+
+    res.status(200).json({
+      documents: documents,
+      totalDocuments: documents.length,
+    });
+  } catch (error) {
+    return res.status(400).json({ message: error.message });
+  }
+};

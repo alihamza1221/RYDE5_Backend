@@ -2,6 +2,11 @@ const driverModel = require("../models/driver.model");
 const driverServices = require("../services/driver.services");
 const blackListTokenModel = require("../models/blackListToken.model");
 const { validationResult } = require("express-validator");
+const { randomString } = require("../utils/randomString");
+const otpController = require("../controllers/otp.controller");
+
+
+
 
 module.exports.registerCaptain = async (req, res, next) => {
   const errors = validationResult(req);
@@ -36,7 +41,7 @@ module.exports.registerCaptain = async (req, res, next) => {
     typeof vehicle === "string" ? JSON.parse(vehicle) : vehicle;
 
   const sendErrorStatus = (message) => {
-    res.status(400).json({ message });
+    return res.status(400).json({ message });
   };
 
   if (!vehicleObj.color || vehicleObj.color.length < 3)
@@ -99,7 +104,7 @@ module.exports.registerCaptain = async (req, res, next) => {
   captain.otp.code = otp;
   await captain.save();
 
-  res.status(201).json({ token, captain });
+  return res.status(201).json({ captain });
 };
 
 module.exports.verify = async (req, res, next) => {
@@ -125,6 +130,7 @@ module.exports.verify = async (req, res, next) => {
 
   const token = driver.generateAuthToken();
   res.cookie("token", token);
+  console.log("driver", driver);
 
   return res.status(200).json({ token, driver });
 };
@@ -143,11 +149,11 @@ module.exports.set2FA = async (req, res, next) => {
     driver.twoFactor = status ? true : false;
     await driver.save();
 
-    res.status(200).json({
+   return res.status(200).json({
       message: "2FA setup status changed to " + status,
     });
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    return res.status(400).json({ message: error.message });
   }
 };
 module.exports.requestOtp = async (req, res, next) => {
@@ -167,11 +173,11 @@ module.exports.requestOtp = async (req, res, next) => {
     captain.otp.code = otp;
     await captain.save();
 
-    res.status(200).json({
+   return res.status(200).json({
       message: "otp successfully sent to your email",
     });
   } catch (error) {
-    res.status(400).json({ message: error.message });
+   return res.status(400).json({ message: error.message });
   }
 };
 module.exports.loginCaptain = async (req, res, next) => {
@@ -203,7 +209,7 @@ module.exports.loginCaptain = async (req, res, next) => {
   if (!captain.twoFactor) {
     const token = captain.generateAuthToken();
     res.cookie("token", token);
-    res.status(200).json({
+    return res.status(200).json({
       token,
       captain,
     });
@@ -214,7 +220,7 @@ module.exports.loginCaptain = async (req, res, next) => {
   captain.otp.code = otp;
   await captain.save();
 
-  res.status(200).json({
+  return res.status(200).json({
     captain: {
       ...captain,
       otp: {
@@ -226,7 +232,7 @@ module.exports.loginCaptain = async (req, res, next) => {
 };
 
 module.exports.getCaptainProfile = async (req, res, next) => {
-  res.status(200).json({ captain: req.captain });
+  return res.status(200).json({ captain: req.captain });
 };
 
 module.exports.logoutCaptain = async (req, res, next) => {
@@ -236,7 +242,7 @@ module.exports.logoutCaptain = async (req, res, next) => {
 
   res.clearCookie("token");
 
-  res.status(200).json({ message: "Logout successfully" });
+  return res.status(200).json({ message: "Logout successfully" });
 };
 
 module.exports.uploadImage = async (req, res, next) => {
@@ -267,11 +273,11 @@ module.exports.uploadImage = async (req, res, next) => {
       });
     }
 
-    res.status(200).json({
+    return res.status(200).json({
       message: "Profile image uploaded successfully",
       driver,
     });
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    return res.status(400).json({ message: error.message });
   }
 };

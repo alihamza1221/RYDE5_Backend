@@ -67,8 +67,9 @@ module.exports.authDriver = async (req, res, next) => {
 };
 
 module.exports.authAdmin = async (req, res, next) => {
-  const token = req.cookies.token || req.headers.authorization?.split(" ")[1];
+  const token = req.headers.authorization?.split(" ")[1] || req.cookies.token;
 
+  console.log("token", token);
   if (!token) {
     return res.status(401).json({ message: "Unauthorized" });
   }
@@ -76,14 +77,16 @@ module.exports.authAdmin = async (req, res, next) => {
   const isBlacklisted = await blackListTokenModel.findOne({ token: token });
 
   if (isBlacklisted) {
-    return res.status(401).json({ message: "Unauthorized" });
+    return res.status(401).json({ message: "Currently Blocked Admin" });
   }
 
   try {
+    console.log("--------verify----admin---");
     const decoded = jwt.verify(token, process.env.ADMIN_JWT_SECRET);
-    const user = await adminModel.findById(decoded._id);
+    const admin = await adminModel.findById(decoded._id);
 
-    req.user = user;
+    console.log("--------admin----login----");
+    req.admin = admin;
 
     return next();
   } catch (err) {

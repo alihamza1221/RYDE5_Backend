@@ -5,7 +5,7 @@ const router = express.Router();
 const { body } = require("express-validator");
 const authMiddleware = require("../middlewares/auth.middleware");
 const upload = require("../utils/multer.config");
-const { upload: imageUpload } = require("../utils/image.config.multer");
+const multerUpload = require("../utils/image.config.multer");
 
 router.post(
   "/register",
@@ -48,7 +48,7 @@ router.get(
 router.post(
   "/uploadImage",
   authMiddleware.authDriver,
-  imageUpload.single("profileImage"),
+  multerUpload.upload.single("profileImage"),
   captainController.uploadImage
 );
 
