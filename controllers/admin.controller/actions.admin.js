@@ -23,7 +23,7 @@ module.exports.setUserStatus = async (req, res, next) => {
     }
 
     // Select model based on userType
-    const Model = userType === "driver" ? driverModel : userModel;
+    const Model = identity === "driver" ? driverModel : userModel;
 
     const user = await Model.findByIdAndUpdate(
       userId,
@@ -33,7 +33,7 @@ module.exports.setUserStatus = async (req, res, next) => {
 
     if (!user) {
       return res.status(404).json({
-        message: `${userType} not found`,
+        message: `${identity} not found`,
       });
     }
 
@@ -117,5 +117,46 @@ module.exports.updateUserInfo = async (req, res, next) => {
     return res.status(400).json({
       message: "Error updating user information",
     });
+  }
+};
+
+module.exports.verifyDriverDocs = async (req, res, next) => {
+  try {
+    const { email, docType, status } = req.body;
+
+    // Validate inputs
+    if (!email || !docType) {
+      return res.status(400).json({
+        message: "email, docType, and status are required",
+      });
+    }
+
+    if (!["driverLicense", "carInsurance"].includes(docType)) {
+      return res.status(400).json({
+        message: "Invalid document type",
+      });
+    }
+
+    const driver = await driverModel.findOne({ email });
+    if (!driver) {
+      return res.status(404).json({
+        message: "Driver not found",
+      });
+    }
+
+    if (status) {
+      driver.docs[docType].isVerified = true;
+    } else {
+      driver.docs[docType].isVerified = false;
+    }
+
+    await driver.save();
+
+    res.status(200).json({
+      message: `${docType} verification status updated successfully`,
+      driver,
+    });
+  } catch (error) {
+    return res.status(400).json({ message: error.message });
   }
 };

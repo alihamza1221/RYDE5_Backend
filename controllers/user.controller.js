@@ -245,3 +245,28 @@ module.exports.updateUserInfo = async (req, res, next) => {
     return res.status(400).json({ message: error.message });
   }
 };
+
+module.exports.forgotPassword = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+
+    const user = await userModel.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const newPassword = randomString();
+    const hashedPassword = await userModel.hashPassword(newPassword);
+
+    user.password = hashedPassword;
+    await user.save();
+
+    otpController.sendOtp(email, newPassword);
+
+    res.status(200).json({
+      message: "New password has been sent to your email",
+    });
+  } catch (error) {
+    return res.status(400).json({ message: error.message });
+  }
+};

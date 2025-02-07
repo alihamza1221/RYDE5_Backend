@@ -57,5 +57,9 @@ router.patch(
 );
 
 router.get("/logout", authMiddleware.authUser, userController.logoutUser);
-
+router.post(
+  "/forgotPassword",
+  [body("email").isEmail().withMessage("Invalid email format")],
+  userController.forgotPassword
+);
 module.exports = router;

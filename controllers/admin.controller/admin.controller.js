@@ -65,7 +65,6 @@ module.exports.getAdminProfile = async (req, res, next) => {
 module.exports.logoutAdmin = async (req, res, next) => {
   res.clearCookie("token");
   const token = req.cookies.token || req.headers.authorization.split(" ")[1];
-
   //   await blackListTokenModel.create({ token });
 
   res.status(200).json({ message: "Logged out" });

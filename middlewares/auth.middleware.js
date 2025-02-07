@@ -7,7 +7,7 @@ const adminModel = require("../models/admin.model");
 const blacklistUserModel = require("../models/blackListToken.model");
 
 module.exports.authUser = async (req, res, next) => {
-  const token = req.cookies.token || req.headers.authorization?.split(" ")[1];
+  const token = req.headers.authorization?.split(" ")[1] || req.cookies.token;
 
   if (!token) {
     return res.status(401).json({ message: "Unauthorized" });
@@ -15,7 +15,7 @@ module.exports.authUser = async (req, res, next) => {
 
   const isBlacklisted = await blackListTokenModel.findOne({ token: token });
   if (isBlacklisted) {
-    return res.status(401).json({ message: "Unauthorized" });
+    return res.status(401).json({ message: "Blocked user" });
   }
 
   try {
@@ -24,7 +24,7 @@ module.exports.authUser = async (req, res, next) => {
 
     const isUserBlackListed = await blacklistUserModel.findById(decoded._id);
     if (isUserBlackListed) {
-      return res.status(401).json({ message: "Unauthorized" });
+      return res.status(401).json({ message: "Blocked user" });
     }
     req.user = user;
 
@@ -35,7 +35,7 @@ module.exports.authUser = async (req, res, next) => {
 };
 
 module.exports.authDriver = async (req, res, next) => {
-  const token = req.cookies.token || req.headers.authorization?.split(" ")[1];
+  const token = req.headers.authorization?.split(" ")[1] || req.cookies.token;
 
   if (!token) {
     return res.status(401).json({ message: "Unauthorized" });
@@ -44,7 +44,7 @@ module.exports.authDriver = async (req, res, next) => {
   const isBlacklisted = await blackListTokenModel.findOne({ token: token });
 
   if (isBlacklisted) {
-    return res.status(401).json({ message: "Unauthorized" });
+    return res.status(401).json({ message: "Blacklisted token" });
   }
 
   try {

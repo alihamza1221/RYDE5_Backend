@@ -16,6 +16,7 @@ module.exports.createCaptain = async ({
   if (
     !fullname ||
     !email ||
+    !phoneNo ||
     !password ||
     !color ||
     !plate ||

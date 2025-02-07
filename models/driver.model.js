@@ -92,10 +92,10 @@ const driverSchema = new mongoose.Schema(
           type: Date,
           required: true,
         },
-        //   isVerified: {
-        //     type: Boolean,
-        //     default: false,
-        //   },
+        isVerified: {
+          type: Boolean,
+          default: false,
+        },
         status: {
           type: String,
           enum: ["pending", "approved", "rejected"],
@@ -114,10 +114,10 @@ const driverSchema = new mongoose.Schema(
           type: Date,
           required: true,
         },
-        //   isVerified: {
-        //     type: Boolean,
-        //     default: false,
-        //   },
+        isVerified: {
+          type: Boolean,
+          default: false,
+        },
         status: {
           type: String,
           enum: ["pending", "approved", "rejected"],

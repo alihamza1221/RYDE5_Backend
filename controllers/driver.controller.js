@@ -2,6 +2,8 @@ const driverModel = require("../models/driver.model");
 const driverServices = require("../services/driver.services");
 const blackListTokenModel = require("../models/blackListToken.model");
 const { validationResult } = require("express-validator");
+const otpController = require("../controllers/otp.controller");
+const { randomString } = require("../utils/randomString");
 
 module.exports.registerCaptain = async (req, res, next) => {
   const errors = validationResult(req);
@@ -36,7 +38,7 @@ module.exports.registerCaptain = async (req, res, next) => {
     typeof vehicle === "string" ? JSON.parse(vehicle) : vehicle;
 
   const sendErrorStatus = (message) => {
-    res.status(400).json({ message });
+    return res.status(400).json({ message });
   };
 
   if (!vehicleObj.color || vehicleObj.color.length < 3)
@@ -99,7 +101,15 @@ module.exports.registerCaptain = async (req, res, next) => {
   captain.otp.code = otp;
   await captain.save();
 
-  res.status(201).json({ token, captain });
+  res.status(201).json({
+    captain: {
+      ...captain,
+      otp: {
+        verified: false,
+        code: null,
+      },
+    },
+  });
 };
 
 module.exports.verify = async (req, res, next) => {
@@ -143,11 +153,11 @@ module.exports.set2FA = async (req, res, next) => {
     driver.twoFactor = status ? true : false;
     await driver.save();
 
-    res.status(200).json({
+    return res.status(200).json({
       message: "2FA setup status changed to " + status,
     });
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    return res.status(400).json({ message: error.message });
   }
 };
 module.exports.requestOtp = async (req, res, next) => {
@@ -221,7 +231,7 @@ module.exports.loginCaptain = async (req, res, next) => {
   captain.otp.code = otp;
   await captain.save();
 
-  res.status(200).json({
+  return res.status(200).json({
     captain: {
       ...captain,
       otp: {
@@ -280,5 +290,30 @@ module.exports.uploadImage = async (req, res, next) => {
     });
   } catch (error) {
     res.status(400).json({ message: error.message });
+  }
+};
+
+module.exports.forgotPassword = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+
+    const user = await driverModel.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "Driver not found" });
+    }
+
+    const newPassword = randomString();
+    const hashedPassword = await userModel.hashPassword(newPassword);
+
+    user.password = hashedPassword;
+    await user.save();
+
+    otpController.sendOtp(email, newPassword);
+
+    res.status(200).json({
+      message: "New password has been sent to your email",
+    });
+  } catch (error) {
+    return res.status(400).json({ message: error.message });
   }
 };

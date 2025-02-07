@@ -4,7 +4,7 @@ const { body } = require("express-validator");
 const authMiddleware = require("../middlewares/auth.middleware");
 const adminController = require("../controllers/admin.controller/admin.controller");
 const dashboardController = require("../controllers/admin.controller/dashboard.controller");
-const { upload } = require("../utils/image.config.multer");
+const multerUpload = require("../utils/image.config.multer");
 const adminActionsController = require("../controllers/admin.controller/actions.admin");
 const upload_doc = require("../utils/multer.config");
 
@@ -90,7 +90,7 @@ router.post(
 router.post(
   "/drivers/vehicle_image",
   authMiddleware.authAdmin,
-  upload.single("vehicleImage"),
+  multerUpload.upload.single("vehicleImage"),
   dashboardController.uploadVehicleImage
 );
 
@@ -105,6 +105,18 @@ router.post(
   "/deleteUser",
   authMiddleware.authAdmin,
   adminActionsController.deleteUser
+);
+router.post(
+  "/verifyDriverDocs",
+  authMiddleware.authAdmin,
+  [
+    body("email").isEmail().withMessage("Invalid email format"),
+    body("docType")
+      .isIn(["driverLicense", "carInsurance"])
+      .withMessage("Invalid document type"),
+    body("status").isBoolean().withMessage("Status must be a boolean"),
+  ],
+  adminController.verifyDriverDocs
 );
 
 //userId, identity, email, fullname
