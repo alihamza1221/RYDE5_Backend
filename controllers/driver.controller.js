@@ -293,6 +293,40 @@ module.exports.uploadImage = async (req, res, next) => {
   }
 };
 
+module.exports.uploadDocuments = async (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  if (!req.file) {
+    return res.status(400).json({ message: "Document is required" });
+  }
+
+  const { docType, driverId, expiryDate } = req.body;
+
+  const documentPath = `/uploads/${req.file.filename}`;
+
+  try {
+    const driver = await driverModel.findById(driverId);
+    if (!driver) {
+      return res.status(404).json({ message: "Driver not found" });
+    }
+
+    driver.docs[docType].path = documentPath;
+    driver.docs[docType].uploadDate = new Date();
+    driver.docs[docType].expiryDate = expiryDate;
+
+    await driver.save();
+
+    res.status(200).json({
+      message: "Document uploaded successfully",
+      driver,
+    });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
 module.exports.forgotPassword = async (req, res, next) => {
   try {
     const { email } = req.body;

@@ -50,6 +50,9 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    emergencyContacts: {
+      type: [String],
+    },
     socketId: {
       type: String,
     },

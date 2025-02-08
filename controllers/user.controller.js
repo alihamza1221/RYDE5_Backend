@@ -270,3 +270,73 @@ module.exports.forgotPassword = async (req, res, next) => {
     return res.status(400).json({ message: error.message });
   }
 };
+
+module.exports.addEmergencyContact = async (req, res, next) => {
+  try {
+    const userId = req.user._id;
+    const { contact } = req.body;
+
+    // Validate contact input
+    if (!contact || typeof contact !== "string") {
+      return res.status(400).json({
+        message: "Contact is required and must be a string",
+      });
+    }
+
+    const user = await userModel
+      .findByIdAndUpdate(
+        userId,
+        { $push: { emergencyContacts: contact } },
+        { new: true }
+      )
+      .select("-password");
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    res.status(200).json({
+      message: "Emergency contact added successfully",
+      user,
+    });
+  } catch (error) {
+    return res.status(400).json({ message: error.message });
+  }
+};
+
+module.exports.deleteEmergencyContact = async (req, res, next) => {
+  try {
+    const userId = req.user._id;
+    const { contact } = req.body;
+
+    // Validate contact input
+    if (!contact || typeof contact !== "string") {
+      return res.status(400).json({
+        message: "Contact is required and must be a string",
+      });
+    }
+
+    const user = await userModel
+      .findByIdAndUpdate(
+        userId,
+        { $pull: { emergencyContacts: contact } },
+        { new: true }
+      )
+      .select("-password");
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    res.status(200).json({
+      message: "Emergency contact deleted successfully",
+      user,
+    });
+  } catch (error) {
+    return res.status(400).json({ message: error.message });
+  }
+};

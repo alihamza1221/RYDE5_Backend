@@ -52,6 +52,19 @@ router.post(
   captainController.uploadImage
 );
 
+router.post(
+  "/uploadDocuments",
+  authMiddleware.authDriver,
+  upload.single("document"),
+  [
+    body("driverId").notEmpty().withMessage("Driver ID is required"),
+    body("docType")
+      .isIn(["driverLicense", "carInsurance"])
+      .withMessage("Invalid document type"),
+  ],
+  captainController.uploadDocuments
+);
+
 router.get(
   "/logout",
   authMiddleware.authDriver,

@@ -3,7 +3,6 @@ const router = express.Router();
 const { body } = require("express-validator");
 const userController = require("../controllers/user.controller");
 const authMiddleware = require("../middlewares/auth.middleware");
-const otpController = require("../controllers/otp.controller");
 const multerUpload = require("../utils/image.config.multer");
 
 router.post(
@@ -61,5 +60,19 @@ router.post(
   "/forgotPassword",
   [body("email").isEmail().withMessage("Invalid email format")],
   userController.forgotPassword
+);
+
+router.patch(
+  "/emergencyContact",
+  authMiddleware.authUser,
+  [body("contact").notEmpty().withMessage("Contact is required")],
+  userController.addEmergencyContact
+);
+
+router.delete(
+  "/emergencyContact",
+  authMiddleware.authUser,
+  [body("contact").notEmpty().withMessage("Contact is required")],
+  userController.deleteEmergencyContact
 );
 module.exports = router;
