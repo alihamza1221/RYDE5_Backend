@@ -4,38 +4,44 @@ const { validationResult } = require("express-validator");
 // const blackListTokenModel = require("../models/blackListToken.model");
 const otpController = require("../controllers/otp.controller");
 const { randomString } = require("../utils/randomString");
+
 module.exports.registerUser = async (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { fullname, email, phoneNo, password } = req.body;
+
+    const isUserAlready = await userModel.findOne({ email });
+
+    if (isUserAlready) {
+      return res.status(400).json({ message: "User already exist" });
+    }
+
+    const hashedPassword = await userModel.hashPassword(password);
+
+    const user = await userService.createUser({
+      fullname,
+      email,
+      phoneNo,
+      password: hashedPassword,
+    });
+
+    const otp = randomString();
+    const to = email;
+    await otpController.sendOtp(to, otp);
+
+    //save otp to db
+    user.otp.code = otp;
+    await user.save();
+
+    user.otp.code = null;
+    res.status(201).json({ user });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
   }
-
-  const { fullname, email, phoneNo, password } = req.body;
-
-  const isUserAlready = await userModel.findOne({ email });
-
-  if (isUserAlready) {
-    return res.status(400).json({ message: "User already exist" });
-  }
-
-  const hashedPassword = await userModel.hashPassword(password);
-
-  const user = await userService.createUser({
-    fullname,
-    email,
-    phoneNo,
-    password: hashedPassword,
-  });
-
-  const otp = randomString();
-  const to = email;
-  otpController.sendOtp(to, otp);
-
-  //save otp to db
-  user.otp.code = otp;
-  await user.save();
-
-  res.status(201).json({ user, otp });
 };
 
 module.exports.verifyUser = async (req, res, next) => {
@@ -102,7 +108,7 @@ module.exports.requestOtp = async (req, res, next) => {
 
     const otp = randomString();
     const to = user.email;
-    otpController.sendOtp(to, otp);
+    await otpController.sendOtp(to, otp);
 
     //save otp to db
     user.otp.code = otp;
@@ -116,55 +122,55 @@ module.exports.requestOtp = async (req, res, next) => {
   }
 };
 module.exports.loginUser = async (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { email, password } = req.body;
+
+    const user = await userModel.findOne({ email }).select("+password");
+
+    if (!user) {
+      return res.status(401).json({ message: "Invalid email or password" });
+    }
+
+    const isMatch = await user.comparePassword(password);
+
+    if (!isMatch) {
+      return res.status(401).json({ message: "Invalid email or password" });
+    }
+
+    if (!user.twoFactor) {
+      const token = user.generateAuthToken();
+      res.cookie("token", token);
+      return res.status(200).json({
+        token,
+        user,
+      });
+    }
+
+    // if (!user.otp.verified) {
+    //   return res.status(401).json({
+    //     message: "Please verify your account first or request for new otp",
+    //   });
+    // }
+
+    const otp = randomString();
+    const to = user.email;
+    await otpController.sendOtp(to, otp);
+
+    user.otp.code = otp;
+    user.otp.verified = false;
+    await user.save();
+
+    res
+      .status(200)
+      .json({ message: "Please enter the otp sent to your email" });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
   }
-
-  const { email, password } = req.body;
-
-  const user = await userModel.findOne({ email }).select("+password");
-
-  if (!user) {
-    return res.status(401).json({ message: "Invalid email or password" });
-  }
-
-  const isMatch = await user.comparePassword(password);
-
-  if (!isMatch) {
-    return res.status(401).json({ message: "Invalid email or password" });
-  }
-
-  if (!user.otp.verified) {
-    return res.status(401).json({
-      message: "Please verify your account first or request for new otp",
-    });
-  }
-
-  if (!user.twoFactor) {
-    const token = user.generateAuthToken();
-    res.cookie("token", token);
-    return res.status(200).json({
-      token,
-      user,
-    });
-  }
-
-  user.otp.verified = false;
-  const otp = randomString();
-  user.otp.code = otp;
-  await user.save();
-
-  res.status(200).json({
-    token,
-    user: {
-      ...user,
-      otp: {
-        verified: false,
-        code: null,
-      },
-    },
-  });
 };
 
 module.exports.getUserProfile = async (req, res, next) => {
@@ -172,12 +178,16 @@ module.exports.getUserProfile = async (req, res, next) => {
 };
 
 module.exports.logoutUser = async (req, res, next) => {
-  res.clearCookie("token");
-  const token = req.cookies.token || req.headers.authorization.split(" ")[1];
+  try {
+    res.clearCookie("token");
+    const token = req.cookies.token || req.headers.authorization.split(" ")[1];
 
-  //   await blackListTokenModel.create({ token });
+    //   await blackListTokenModel.create({ token });
 
-  return res.status(200).json({ message: "Logged out" });
+    return res.status(200).json({ message: "Logged out" });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
 };
 
 module.exports.uploadImage = async (req, res, next) => {
@@ -261,7 +271,7 @@ module.exports.forgotPassword = async (req, res, next) => {
     user.password = hashedPassword;
     await user.save();
 
-    otpController.sendOtp(email, newPassword);
+    await otpController.sendOtp(email, newPassword);
 
     res.status(200).json({
       message: "New password has been sent to your email",
@@ -312,7 +322,7 @@ module.exports.deleteEmergencyContact = async (req, res, next) => {
     const { contact } = req.body;
 
     // Validate contact input
-    if (!contact || typeof contact !== "string") {
+    if (!contact) {
       return res.status(400).json({
         message: "Contact is required and must be a string",
       });
@@ -334,7 +344,7 @@ module.exports.deleteEmergencyContact = async (req, res, next) => {
 
     res.status(200).json({
       message: "Emergency contact deleted successfully",
-      user,
+      userContacts: user.emergencyContacts,
     });
   } catch (error) {
     return res.status(400).json({ message: error.message });

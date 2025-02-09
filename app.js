@@ -7,6 +7,12 @@ const cookieParser = require("cookie-parser");
 const path = require("path");
 const fs = require("fs");
 
+const debugMiddleware = (req, res, next) => {
+  console.log("Request path", req.path);
+  next();
+};
+
+app.use(debugMiddleware);
 const connectToDb = require("./db/db");
 const userRoutes = require("./routes/user.routes");
 const driverRoutes = require("./routes/driver.routes");

@@ -12,6 +12,7 @@ router.post(
     body("fullname")
       .isLength({ min: 3 })
       .withMessage("Full name must be at least 3 characters long"),
+    body("phoneNo").optional().isLength({ min: 10 }),
     body("password")
       .isLength({ min: 6 })
       .withMessage("Password must be at least 6 characters long"),
@@ -56,7 +57,7 @@ router.patch(
 );
 
 router.get("/logout", authMiddleware.authUser, userController.logoutUser);
-router.post(
+router.patch(
   "/forgotPassword",
   [body("email").isEmail().withMessage("Invalid email format")],
   userController.forgotPassword
