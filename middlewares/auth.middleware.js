@@ -26,6 +26,12 @@ module.exports.authUser = async (req, res, next) => {
     if (isUserBlackListed) {
       return res.status(401).json({ message: "Blocked user" });
     }
+
+    if (user.twoFactor == true && user.otp.verified == false) {
+      return res.status(401).json({
+        message: "Please verify your account first or request for new otp",
+      });
+    }
     req.user = user;
 
     return next();
@@ -56,6 +62,11 @@ module.exports.authDriver = async (req, res, next) => {
 
     const captain = await captainModel.findById(decoded._id);
 
+    if (captain.twoFactor == true && captain.otp.verified == false) {
+      return res.status(401).json({
+        message: "Please verify your account first or request for new otp",
+      });
+    }
     req.captain = captain;
 
     return next();

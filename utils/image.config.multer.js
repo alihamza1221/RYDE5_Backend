@@ -5,7 +5,7 @@ module.exports.upload = multer({
   storage: multer.diskStorage({
     destination: "uploads/",
     filename: (req, file, cb) => {
-      cb(null, `vehicle-${Date.now()}${path.extname(file.originalname)}`);
+      cb(null, `${Date.now()}-${file.originalname}`);
     },
   }),
   fileFilter: (req, file, cb) => {

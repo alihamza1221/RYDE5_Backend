@@ -18,6 +18,7 @@ router.post(
     body("fullname")
       .isLength({ min: 3 })
       .withMessage("Full name must be at least 3 characters long"),
+    body("phoneNo").notEmpty().isNumeric().isLength({ min: 10 }),
     body("password")
       .isLength({ min: 6 })
       .withMessage("Password must be at least 6 characters long"),
@@ -27,7 +28,7 @@ router.post(
 
 router.post("/verify", captainController.verify);
 router.post("/set2FA", authMiddleware.authDriver, captainController.set2FA);
-router.post("requestOtp", captainController.requestOtp);
+router.post("/requestOtp", captainController.requestOtp);
 
 router.post(
   "/login",
@@ -57,12 +58,19 @@ router.post(
   authMiddleware.authDriver,
   upload.single("document"),
   [
-    body("driverId").notEmpty().withMessage("Driver ID is required"),
+    body("driverId").optional().notEmpty().withMessage("Driver ID is required"),
     body("docType")
       .isIn(["driverLicense", "carInsurance"])
       .withMessage("Invalid document type"),
+    body("expiryDate").notEmpty().withMessage("Invalid expiry date"),
   ],
   captainController.uploadDocuments
+);
+
+router.patch(
+  "/forgotPassword",
+  [body("email").isEmail().withMessage("Invalid email format")],
+  captainController.forgotPassword
 );
 
 router.get(

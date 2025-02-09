@@ -49,7 +49,7 @@ router.get(
   authMiddleware.authAdmin,
   dashboardController.getUsersDetails
 );
-router.post(
+router.patch(
   "/users/getFilteredUsers",
   authMiddleware.authAdmin,
   dashboardController.getFilteredUsers

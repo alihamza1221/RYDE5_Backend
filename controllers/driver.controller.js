@@ -6,110 +6,110 @@ const otpController = require("../controllers/otp.controller");
 const { randomString } = require("../utils/randomString");
 
 module.exports.registerCaptain = async (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
-  }
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
 
-  const {
-    fullname,
-    email,
-    phoneNo,
-    password,
-    vehicle,
-    driverLicenseExpiryDate,
-    carInsuranceExpiryDate,
-  } = req.body;
+    const {
+      fullname,
+      email,
+      phoneNo,
+      password,
+      vehicle,
+      driverLicenseExpiryDate,
+      carInsuranceExpiryDate,
+    } = req.body;
 
-  const isCaptainAlreadyExist = await driverModel.findOne({ email });
+    const isCaptainAlreadyExist = await driverModel.findOne({ email });
 
-  if (isCaptainAlreadyExist) {
-    return res.status(400).json({ message: "Captain already exist" });
-  }
+    if (isCaptainAlreadyExist) {
+      return res.status(400).json({ message: "Captain already exist" });
+    }
 
-  console.log("req.body", req.body);
-  console.log("files", req.files);
-  if (!req.files || !req.files.driverLicense || !req.files.carInsurance) {
-    return res.status(400).json({ message: "All documents are required" });
-  }
+    console.log("req.body", req.body);
+    console.log("files", req.files);
+    if (!req.files || !req.files.driverLicense || !req.files.carInsurance) {
+      return res.status(400).json({ message: "All documents are required" });
+    }
 
-  // Validate vehicle object
-  const vehicleObj =
-    typeof vehicle === "string" ? JSON.parse(vehicle) : vehicle;
+    // Validate vehicle object
+    const vehicleObj =
+      typeof vehicle === "string" ? JSON.parse(vehicle) : vehicle;
 
-  const sendErrorStatus = (message) => {
-    return res.status(400).json({ message });
-  };
+    const sendErrorStatus = (message) => {
+      return res.status(400).json({ message });
+    };
 
-  if (!vehicleObj.color || vehicleObj.color.length < 3)
-    sendErrorStatus("Color must be at least 3 characters");
-  if (!vehicleObj.plate) sendErrorStatus("Plate is required");
-  if (!vehicleObj.capacity || vehicleObj.capacity < 1)
-    sendErrorStatus("Capacity must be at least 1");
-  if (!["car", "motorcycle", "auto"].includes(vehicleObj.vehicleType))
-    sendErrorStatus("Invalid vehicle type");
-  if (!vehicleObj.vehicleModel) sendErrorStatus("Vehicle model is required");
+    if (!vehicleObj.color || vehicleObj.color.length < 3)
+      sendErrorStatus("Color must be at least 3 characters");
+    if (!vehicleObj.plate) sendErrorStatus("Plate is required");
+    if (!vehicleObj.capacity || vehicleObj.capacity < 1)
+      sendErrorStatus("Capacity must be at least 1");
+    if (!["car", "motorcycle", "auto"].includes(vehicleObj.vehicleType))
+      sendErrorStatus("Invalid vehicle type");
+    if (!vehicleObj.vehicleModel) sendErrorStatus("Vehicle model is required");
 
-  // Upload to Cloudinary
+    // Upload to Cloudinary
 
-  // const driverLicenseResult = await cloudinary.uploader.upload(
-  //   `data:${
-  //     req.files.driverLicense[0].mimetype
-  //   };base64,${req.files.driverLicense[0].buffer.toString("base64")}`,
-  //   { folder: "driver-docs", resource_type: "raw", timeout: 120000 }
-  // );
+    // const driverLicenseResult = await cloudinary.uploader.upload(
+    //   `data:${
+    //     req.files.driverLicense[0].mimetype
+    //   };base64,${req.files.driverLicense[0].buffer.toString("base64")}`,
+    //   { folder: "driver-docs", resource_type: "raw", timeout: 120000 }
+    // );
 
-  // const insuranceResult = await await cloudinary.uploader.upload(
-  //   `data:${
-  //     req.files.carInsurance[0].mimetype
-  //   };base64,${req.files.carInsurance[0].buffer.toString("base64")}`,
-  //   { folder: "driver-docs", resource_type: "raw", timeout: 120000 }
-  // );
+    // const insuranceResult = await await cloudinary.uploader.upload(
+    //   `data:${
+    //     req.files.carInsurance[0].mimetype
+    //   };base64,${req.files.carInsurance[0].buffer.toString("base64")}`,
+    //   { folder: "driver-docs", resource_type: "raw", timeout: 120000 }
+    // );
 
-  const driverLicensePath = `/uploads/${req.files.driverLicense[0].filename}`;
-  const carInsurancePath = `/uploads/${req.files.carInsurance[0].filename}`;
+    const driverLicensePath = `/uploads/${req.files.driverLicense[0].filename}`;
+    const carInsurancePath = `/uploads/${req.files.carInsurance[0].filename}`;
 
-  const hashedPassword = await driverModel.hashPassword(password);
+    const hashedPassword = await driverModel.hashPassword(password);
 
-  const captain = await driverServices.createCaptain({
-    fullname,
-    email,
-    phoneNo,
-    password: hashedPassword,
-    color: vehicleObj.color,
-    plate: vehicleObj.plate,
-    capacity: vehicleObj.capacity,
-    vehicleType: vehicleObj.vehicleType,
-    vehicleModel: vehicleObj.vehicleModel,
-    driverLicense: {
-      path: driverLicensePath,
-      uploadDate: new Date(),
-      expiryDate: driverLicenseExpiryDate,
-    },
-    carInsurance: {
-      path: carInsurancePath,
-      uploadDate: new Date(),
-      expiryDate: carInsuranceExpiryDate,
-    },
-  });
-
-  const otp = randomString();
-  const to = email;
-  otpController.sendOtp(to, otp);
-
-  //save otp to db
-  captain.otp.code = otp;
-  await captain.save();
-
-  res.status(201).json({
-    captain: {
-      ...captain,
-      otp: {
-        verified: false,
-        code: null,
+    const captain = await driverServices.createCaptain({
+      fullname,
+      email,
+      phoneNo,
+      password: hashedPassword,
+      color: vehicleObj.color,
+      plate: vehicleObj.plate,
+      capacity: vehicleObj.capacity,
+      vehicleType: vehicleObj.vehicleType,
+      vehicleModel: vehicleObj.vehicleModel,
+      driverLicense: {
+        path: driverLicensePath,
+        uploadDate: new Date(),
+        expiryDate: driverLicenseExpiryDate,
       },
-    },
-  });
+      carInsurance: {
+        path: carInsurancePath,
+        uploadDate: new Date(),
+        expiryDate: carInsuranceExpiryDate,
+      },
+    });
+
+    const otp = randomString();
+    const to = email;
+    await otpController.sendOtp(to, otp);
+
+    //save otp to db
+    captain.otp.code = otp;
+    await captain.save();
+
+    captain.otp.code = null;
+    captain.otp.verified = false;
+    return res.status(201).json({
+      captain,
+    });
+  } catch (error) {
+    return res.status(400).json({ message: error.message });
+  }
 };
 
 module.exports.verify = async (req, res, next) => {
@@ -162,27 +162,22 @@ module.exports.set2FA = async (req, res, next) => {
 };
 module.exports.requestOtp = async (req, res, next) => {
   try {
-    const driverId = req.captain._id;
     const email = req.body.email;
 
-    let driver = null;
-
-    if (driverId) {
-      driver = await driverModel.findById(driverId);
-    } else {
-      driver = await driverModel.findOne({ email });
-    }
+    const driver = await driverModel.findOne({ email });
     if (!driver) {
       return res.status(404).json({ message: "Unmatched fields error" });
     }
 
     const otp = randomString();
     const to = driver.email;
-    otpController.sendOtp(to, otp);
+    await otpController.sendOtp(to, otp);
 
     //save otp to db
-    captain.otp.code = otp;
-    await captain.save();
+    driver.otp.code = otp;
+    console.log("otp", otp);
+    await driver.save();
+    console.log("driver", driver);
 
     res.status(200).json({
       message: "otp successfully sent to your email",
@@ -192,54 +187,54 @@ module.exports.requestOtp = async (req, res, next) => {
   }
 };
 module.exports.loginCaptain = async (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
-  }
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
 
-  const { email, password } = req.body;
+    const { email, password } = req.body;
 
-  const captain = await driverModel.findOne({ email }).select("+password");
+    const captain = await driverModel.findOne({ email }).select("+password");
 
-  if (!captain) {
-    return res.status(401).json({ message: "Invalid email or password" });
-  }
+    if (!captain) {
+      return res.status(401).json({ message: "Invalid email or password" });
+    }
 
-  const isMatch = await captain.comparePassword(password);
+    const isMatch = await captain.comparePassword(password);
 
-  if (!isMatch) {
-    return res.status(401).json({ message: "Invalid email or password" });
-  }
+    if (!isMatch) {
+      return res.status(401).json({ message: "Invalid email or password" });
+    }
 
-  if (!captain.otp.verified) {
-    return res.status(401).json({
-      message: "Please verify your account first or request for new otp",
-    });
-  }
+    // if (!captain.otp.verified) {
+    //   return res.status(401).json({
+    //     message: "Please verify your account first or request for new otp",
+    //   });
+    // }
 
-  if (!captain.twoFactor) {
-    const token = captain.generateAuthToken();
-    res.cookie("token", token);
+    if (!captain.twoFactor) {
+      const token = captain.generateAuthToken();
+      res.cookie("token", token);
+      return res.status(200).json({
+        token,
+        captain,
+      });
+    }
+
+    const otp = randomString();
+    otpController.sendOtp(email, otp);
+    captain.otp.code = otp;
+    captain.otp.verified = false;
+    await captain.save();
+
+    captain.otp.code = null;
     return res.status(200).json({
-      token,
-      captain,
+      message: "OTP has been sent to your email",
     });
+  } catch (error) {
+    return res.status(400).json({ message: error.message });
   }
-
-  captain.otp.verified = false;
-  const otp = randomString();
-  captain.otp.code = otp;
-  await captain.save();
-
-  return res.status(200).json({
-    captain: {
-      ...captain,
-      otp: {
-        verified: false,
-        code: null,
-      },
-    },
-  });
 };
 
 module.exports.getCaptainProfile = async (req, res, next) => {
@@ -249,7 +244,7 @@ module.exports.getCaptainProfile = async (req, res, next) => {
 module.exports.logoutCaptain = async (req, res, next) => {
   const token = req.cookies.token || req.headers.authorization?.split(" ")[1];
 
-  //   await blackListTokenModel.create({ token });
+  await blackListTokenModel.create({ token });
 
   res.clearCookie("token");
 
@@ -268,47 +263,44 @@ module.exports.uploadImage = async (req, res, next) => {
 
     const imagePath = `/upload/${req.file.filename}`;
 
-    const driver = await driverModel
-      .findByIdAndUpdate(
-        driverId,
-        {
-          image: imagePath,
-        },
-        { new: true }
-      )
-      .select("-password");
-
+    console.log("imagepath;", imagePath);
+    //return updated user
+    const driver = await driverModel.findById(driverId).select("-password");
     if (!driver) {
       return res.status(404).json({
         message: "Driver not found",
       });
     }
+    driver.image = imagePath;
+    await driver.save();
 
-    res.status(200).json({
+    console.log("driver", driver);
+    return res.status(200).json({
       message: "Profile image uploaded successfully",
       driver,
     });
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    return res.status(400).json({ message: error.message });
   }
 };
 
 module.exports.uploadDocuments = async (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
-  }
-
-  if (!req.file) {
-    return res.status(400).json({ message: "Document is required" });
-  }
-
-  const { docType, driverId, expiryDate } = req.body;
-
-  const documentPath = `/uploads/${req.file.filename}`;
-
   try {
-    const driver = await driverModel.findById(driverId);
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ message: "Document is required" });
+    }
+
+    const { docType, driverId, expiryDate } = req.body;
+
+    const _driver_id = req?.captain?._id ?? driverId;
+    const documentPath = `/uploads/${req.file.filename}`;
+
+    const driver = await driverModel.findById(_driver_id);
     if (!driver) {
       return res.status(404).json({ message: "Driver not found" });
     }
@@ -331,18 +323,17 @@ module.exports.forgotPassword = async (req, res, next) => {
   try {
     const { email } = req.body;
 
-    const user = await driverModel.findOne({ email });
-    if (!user) {
+    const driver = await driverModel.findOne({ email });
+    if (!driver) {
       return res.status(404).json({ message: "Driver not found" });
     }
 
     const newPassword = randomString();
-    const hashedPassword = await userModel.hashPassword(newPassword);
+    const hashedPassword = await driverModel.hashPassword(newPassword);
 
-    user.password = hashedPassword;
-    await user.save();
-
-    otpController.sendOtp(email, newPassword);
+    driver.password = hashedPassword;
+    await driver.save();
+    await otpController.sendOtp(email, newPassword);
 
     res.status(200).json({
       message: "New password has been sent to your email",

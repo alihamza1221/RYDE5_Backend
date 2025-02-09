@@ -33,7 +33,7 @@ router.post(
 
 router.post("/verify", userController.verifyUser);
 router.post("/set2FA", authMiddleware.authUser, userController.set2FA);
-router.post("requestOtp", userController.requestOtp);
+router.post("/requestOtp", userController.requestOtp);
 
 router.get("/profile", authMiddleware.authUser, userController.getUserProfile);
 router.post(
@@ -66,14 +66,14 @@ router.patch(
 router.patch(
   "/emergencyContact",
   authMiddleware.authUser,
-  [body("contact").notEmpty().withMessage("Contact is required")],
+  [body("contact").notEmpty().isNumeric().withMessage("Contact is required")],
   userController.addEmergencyContact
 );
 
 router.delete(
   "/emergencyContact",
   authMiddleware.authUser,
-  [body("contact").notEmpty().withMessage("Contact is required")],
+  [body("contact").notEmpty().isNumeric().withMessage("Contact is required")],
   userController.deleteEmergencyContact
 );
 module.exports = router;

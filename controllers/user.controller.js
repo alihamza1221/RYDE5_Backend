@@ -1,7 +1,7 @@
 const userModel = require("../models/user.model");
 const userService = require("../services/user.services");
 const { validationResult } = require("express-validator");
-// const blackListTokenModel = require("../models/blackListToken.model");
+const blackListTokenModel = require("../models/blackListToken.model");
 const otpController = require("../controllers/otp.controller");
 const { randomString } = require("../utils/randomString");
 
@@ -74,11 +74,15 @@ module.exports.verifyUser = async (req, res, next) => {
 module.exports.set2FA = async (req, res, next) => {
   try {
     const userId = req.user._id ?? req.body.userId;
-    const status = req.body.status;
+    const { status } = req.body;
+
+    console.log("status", status);
 
     const user = await userModel.findById(userId);
-    if (!user) {
-      return res.status(404).json({ message: "Unmatched fields error" });
+    if (!user || status === undefined) {
+      return res
+        .status(404)
+        .json({ message: "All fields are required status-" + status });
     }
 
     // set twofactor status
@@ -94,14 +98,10 @@ module.exports.set2FA = async (req, res, next) => {
 };
 module.exports.requestOtp = async (req, res, next) => {
   try {
-    const userId = req.user._id;
     const { email } = req.body;
 
-    let user = null;
-    if (userId) user = await userModel.findById(userId);
-    else {
-      user = await userModel.findOne({ email });
-    }
+    const user = await userModel.findOne({ email });
+
     if (!user) {
       return res.status(404).json({ message: "Unmatched fields error" });
     }
@@ -182,7 +182,7 @@ module.exports.logoutUser = async (req, res, next) => {
     res.clearCookie("token");
     const token = req.cookies.token || req.headers.authorization.split(" ")[1];
 
-    //   await blackListTokenModel.create({ token });
+    await blackListTokenModel.create({ token });
 
     return res.status(200).json({ message: "Logged out" });
   } catch (error) {
@@ -232,11 +232,41 @@ module.exports.updateUserInfo = async (req, res, next) => {
     const userId = req.user._id;
     const { email, phone } = req.body;
 
-    // Create update object with only provided fields
+    //check if email or phone exists
+    if (!email && !phone) {
+      return res.status(400).json({
+        message: "Email or phone is required",
+      });
+    }
+
+    //check if email and phone already exist in db
+    const userExist = await userModel.findOne({
+      $or: [{ email }, { phoneNo: phone }],
+    });
+    if (userExist) {
+      return res.status(400).json({
+        message: "Email or phone already exist",
+      });
+    }
+
+    //Create update object with only provided fields
     const updateData = {};
     if (email) updateData.email = email;
     if (phone) updateData.phoneNo = phone;
 
+    //get user
+    const _user = await userModel.findById(userId);
+    let message = null;
+    if (_user.twoFactor) {
+      //send otp
+      const otp = randomString();
+      const to = email;
+      await otpController.sendOtp(to, otp);
+      _user.otp.code = otp;
+      _user.otp.verified = false;
+      await _user.save();
+      message = "Please enter the otp sent to your email";
+    }
     const user = await userModel
       .findByIdAndUpdate(userId, updateData, { new: true })
       .select("-password");
@@ -248,8 +278,7 @@ module.exports.updateUserInfo = async (req, res, next) => {
     }
 
     return res.status(200).json({
-      message: "User information updated successfully",
-      user,
+      message: "User information updated successfully " + message,
     });
   } catch (error) {
     return res.status(400).json({ message: error.message });
@@ -287,7 +316,7 @@ module.exports.addEmergencyContact = async (req, res, next) => {
     const { contact } = req.body;
 
     // Validate contact input
-    if (!contact || typeof contact !== "string") {
+    if (!contact) {
       return res.status(400).json({
         message: "Contact is required and must be a string",
       });
