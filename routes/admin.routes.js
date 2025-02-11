@@ -101,23 +101,23 @@ router.post(
   adminActionsController.setUserStatus
 );
 
-router.post(
+router.delete(
   "/deleteUser",
   authMiddleware.authAdmin,
   adminActionsController.deleteUser
 );
-// router.post(
-//   "/verifyDriverDocs",
-//   authMiddleware.authAdmin,
-//   [
-//     body("email").isEmail().withMessage("Invalid email format"),
-//     body("docType")
-//       .isIn(["driverLicense", "carInsurance"])
-//       .withMessage("Invalid document type"),
-//     body("status").isBoolean().withMessage("Status must be a boolean"),
-//   ],
-//   adminController.verifyDriverDocs
-// );
+router.post(
+  "/verifyDriverDocs",
+  authMiddleware.authAdmin,
+  [
+    body("email").isEmail().withMessage("Invalid email format"),
+    body("docType")
+      .isIn(["driverLicense", "carInsurance"])
+      .withMessage("Invalid document type"),
+    body("status").isBoolean().withMessage("Status must be a boolean"),
+  ],
+  adminActionsController.verifyDriverDocs
+);
 
 //userId, identity, email, fullname
 router.patch(
